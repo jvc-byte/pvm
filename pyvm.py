@@ -23,6 +23,60 @@ class PyVersionManager:
         
         if not self.config_file.exists():
             self._write_config({"installed_versions": {}, "current": None})
+        
+        # Detect existing Python installations
+        self._detect_existing_python()
+
+    def _detect_existing_python(self):
+        """Detect existing Python installations on the system."""
+        config = self._read_config()
+        
+        # Check common Python installation paths
+        paths_to_check = [
+            r"C:\Python*",
+            r"C:\Program Files\Python*",
+            r"C:\Program Files (x86)\Python*",
+            os.path.expanduser(r"~\AppData\Local\Programs\Python\Python*")
+        ]
+
+        # Try to detect current Python version
+        try:
+            result = subprocess.run(['python', '--version'], 
+                                  capture_output=True, 
+                                  text=True)
+            if result.returncode == 0:
+                version = result.stdout.strip().split()[1]
+                python_path = subprocess.run(['where', 'python'], 
+                                          capture_output=True, 
+                                          text=True).stdout.strip()
+                if python_path:
+                    python_dir = str(Path(python_path).parent)
+                    config["installed_versions"][version] = python_dir
+                    config["current"] = version
+        except Exception as e:
+            print(f"Warning: Could not detect current Python version: {e}")
+
+        # Check registry for installed Python versions
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 
+                              r"SOFTWARE\Python\PythonCore", 
+                              0, 
+                              winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+                i = 0
+                while True:
+                    try:
+                        version = winreg.EnumKey(key, i)
+                        with winreg.OpenKey(key, f"{version}\\InstallPath", 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as path_key:
+                            install_path, _ = winreg.QueryValueEx(path_key, "")
+                            if install_path and version not in config["installed_versions"]:
+                                config["installed_versions"][version] = install_path
+                        i += 1
+                    except WindowsError:
+                        break
+        except WindowsError:
+            pass
+
+        self._write_config(config)
 
     def _write_config(self, config):
         """Write configuration to config file."""
@@ -37,6 +91,12 @@ class PyVersionManager:
     def install_version(self, version):
         """Install a specific Python version."""
         print(f"Installing Python {version}...")
+        
+        # Check if version is already installed
+        config = self._read_config()
+        if version in config["installed_versions"]:
+            print(f"Python {version} is already installed")
+            return True
         
         # Create version directory
         version_dir = self.versions_dir / version
@@ -57,7 +117,6 @@ class PyVersionManager:
             zip_ref.extractall(version_dir)
         
         # Update config
-        config = self._read_config()
         config["installed_versions"][version] = str(version_dir)
         self._write_config(config)
         
@@ -110,9 +169,14 @@ class PyVersionManager:
         """List installed Python versions."""
         config = self._read_config()
         print("\nInstalled Python versions:")
+        if not config["installed_versions"]:
+            print("No Python versions are currently tracked by PyVM")
+            return
+        
         for version, path in config["installed_versions"].items():
             current = " (current)" if version == config["current"] else ""
             print(f"- Python {version}{current}")
+            print(f"  Location: {path}")
 
     def uninstall_version(self, version):
         """Uninstall a specific Python version."""
@@ -122,9 +186,15 @@ class PyVersionManager:
             print(f"Python {version} is not installed")
             return False
         
-        # Remove version directory
         version_dir = Path(config["installed_versions"][version])
-        shutil.rmtree(version_dir)
+        
+        # Only remove if it's in our versions directory
+        if str(self.versions_dir) in str(version_dir):
+            shutil.rmtree(version_dir)
+        else:
+            print(f"Warning: Cannot uninstall system Python at {version_dir}")
+            print("Only Python versions installed by PyVM can be uninstalled")
+            return False
         
         # Update config
         del config["installed_versions"][version]
@@ -140,10 +210,10 @@ def main():
     
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  pyvm install <version>  - Install Python version")
-        print("  pyvm use <version>      - Switch to Python version")
-        print("  pyvm list              - List installed versions")
-        print("  pyvm uninstall <version> - Uninstall Python version")
+        print(" python pyvm.py install <version>  - Install Python version")
+        print(" python pyvm.py use <version>      - Switch to Python version")
+        print(" python pyvm.py list              - List installed versions")
+        print(" python pyvm.py uninstall <version> - Uninstall Python version")
         return
 
     command = sys.argv[1]
