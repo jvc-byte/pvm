@@ -15,21 +15,24 @@ A lightweight Python version manager that allows you to install, manage, and swi
 - Windows operating system
 - Administrator privileges (required for PATH manipulation)
 - Internet connection (for downloading Python versions)
+- Git installed on your system
 
 ## Installation
 
-1. Create a new directory for PyVM:
+1. Clone the repository:
    ```bash
-   mkdir pyvm
+   git clone https://github.com/YOUR_USERNAME/pyvm.git
    cd pyvm
    ```
 
-2. Download the `pyvm.py` script to this directory.
+2. Run your first command to verify installation:
+   ```bash
+   python pyvm.py
+   ```
 
-3. Create a shortcut to the script (optional):
-   - Right-click on `pyvm.py`
-   - Select "Create shortcut"
-   - Move the shortcut to a location in your PATH
+3. (Optional) Add to PATH:
+   - Add the pyvm directory to your system's PATH
+   - Or create a shortcut in a directory that's already in your PATH
 
 ## Usage
 
@@ -69,7 +72,8 @@ Right-click on PowerShell or Command Prompt and select "Run as administrator" be
 1. First time setup:
    ```bash
    # Open PowerShell as Administrator
-   cd C:\path\to\pyvm
+   git clone https://github.com/YOUR_USERNAME/pyvm.git
+   cd pyvm
    python pyvm.py list  # Will show no versions installed
    ```
 
@@ -100,6 +104,13 @@ PyVM creates the following directory structure in your user home folder:
 │   ├── 3.8.0/
 │   └── ...
 └── config.json
+
+Repository Structure:
+pyvm/
+├── pyvm.py
+├── README.md
+├── LICENSE
+└── .gitignore
 ```
 
 ## Troubleshooting
@@ -132,7 +143,11 @@ PyVM creates the following directory structure in your user home folder:
 
 ## Contributing
 
-Feel free to submit issues and enhancement requests!
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## License
 
