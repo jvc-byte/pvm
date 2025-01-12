@@ -16,6 +16,7 @@ A lightweight Python version manager that allows you to install, manage, and swi
 - Administrator privileges (required for PATH manipulation)
 - Internet connection (for downloading Python versions)
 - Git installed on your system
+- Python installed on your PC 
 
 ## Installation
 
